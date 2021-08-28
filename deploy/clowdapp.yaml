@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: sources-monitor-go
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: sources-monitor-go
+  spec:
+    envName: ${ENV_NAME}
+    jobs:
+    - name: available-sources
+      schedule: ${SCHEDULE_AVAILABLE}
+      concurrencyPolicy: Forbid
+      restartPolicy: Never
+      startingDeadlineSeconds: 30
+      podSpec:
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+        - /sources-monitor-go
+        - -status
+        - available
+        env:
+        - name: SOURCES_SCHEME
+          value: ${SOURCES_SCHEME}
+        - name: SOURCES_HOST
+          value: ${SOURCES_HOST}
+        - name: SOURCES_PORT
+          value: ${SOURCES_PORT}
+        - name: SOURCES_PSK
+          valueFrom:
+            secretKeyRef:
+              name: internal-psk
+              key: psk
+              optional: true
+        resources:
+          limits:
+            cpu: ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
+          requests:
+            cpu: ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
+    - name: unavailable-sources
+      schedule: ${SCHEDULE_UNAVAILABLE}
+      concurrencyPolicy: Forbid
+      restartPolicy: Never
+      startingDeadlineSeconds: 30
+      podSpec:
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+        - /sources-monitor-go
+        - -status
+        - unavailable
+        env:
+        - name: SOURCES_SCHEME
+          value: ${SOURCES_SCHEME}
+        - name: SOURCES_HOST
+          value: ${SOURCES_HOST}
+        - name: SOURCES_PORT
+          value: ${SOURCES_PORT}
+        - name: SOURCES_PSK
+          valueFrom:
+            secretKeyRef:
+              name: internal-psk
+              key: psk
+              optional: true
+        resources:
+          limits:
+            cpu: ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
+          requests:
+            cpu: ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
+parameters:
+- name: CPU_LIMIT
+  value: 250m
+- name: CPU_REQUEST
+  value: 50m
+- description: Clowder ENV
+  name: ENV_NAME
+  required: true
+- description: Image
+  name: IMAGE
+  value: quay.io/cloudservices/sources-monitor-go
+- description: Image tag
+  name: IMAGE_TAG
+  required: true
+- name: MEMORY_LIMIT
+  value: 100Mi
+- name: MEMORY_REQUEST
+  value: 25Mi
+- description: Schedule for Sources with available status
+  displayName: Schedule for Available Sources
+  name: SCHEDULE_AVAILABLE
+  value: "0 */1 * * *"
+- description: Schedule for Sources with nil or unavailable status
+  displayName: Schedule for Unavailable Sources
+  name: SCHEDULE_UNAVAILABLE
+  value: "15,45 */1 * * *"
+- description: Scheme to use for the Sources service URL.
+  displayName: Sources Service Scheme
+  name: SOURCES_SCHEME
+  value: http
+- description: Host to use for the Sources service URL.
+  displayName: Sources Service Host
+  name: SOURCES_HOST
+  required: true
+  value: sources-api-svc
+- description: Port to use for the Sources service URL.
+  displayName: Sources Service Port
+  name: SOURCES_PORT
+  value: '8000'
