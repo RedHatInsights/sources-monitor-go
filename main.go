@@ -5,45 +5,38 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"sync"
+	"time"
 )
 
 var (
-	host  string
-	psk   string
-	wg    = sync.WaitGroup{}
-	choke chan struct{}
-)
-
-type SourceResponse struct {
-	Data []struct {
-		AvailabilityStatus string `json:"availability_status"`
-		ID                 string `json:"id"`
-		Tenant             string `json:"tenant"`
-	} `json:"data"`
-	Meta struct {
-		Count  int64 `json:"count"`
-		Limit  int64 `json:"limit"`
-		Offset int64 `json:"offset"`
-	} `json:"meta"`
-}
-
-func init() {
 	// where is sources-api?
 	host = fmt.Sprintf("%v://%v:%v", os.Getenv("SOURCES_SCHEME"), os.Getenv("SOURCES_HOST"), os.Getenv("SOURCES_PORT"))
+	// how can we talk to it?
 	psk = os.Getenv("SOURCES_PSK")
-	// only sending the buffered channel's size requests at once
+
+	// global waitgroup to keep track of how many goroutines are running
+	wg = sync.WaitGroup{}
+	// channel to limit the number of requests running at once
 	choke = make(chan struct{}, 3)
-}
+	// default client has no timeout, so use our own.
+	httpClient = http.Client{Timeout: 10 * time.Second}
+)
 
 func main() {
 	// usage: ./sources-monitor-go -status unavailable
 	// defaults to "all"
 	status := flag.String("status", "all", "which availability_status to check")
 	flag.Parse()
+
+	if psk == "" {
+		log.Fatalf("Need PSK to run availability checks.")
+	}
+	log.Printf("Checking sources with [%v] status from [%v]", *status, host)
 
 	// first page of sources
 	sources := listInternalSources(100, 0)
@@ -54,11 +47,15 @@ func main() {
 			if *status == "all" || s.AvailabilityStatus == *status {
 				// Add one to the "in-flight" waitgroup so we know what to wait for
 				wg.Add(1)
+				// send an empty struct onto the choke channel - this limits us to the
+				// size of the channel as far as requests running at once
+				choke <- struct{}{}
 				go checkAvailability(s.ID, s.Tenant)
 			}
 		}
 		// if we hit the last page, break out of the loop.
 		if sources.Meta.Limit+sources.Meta.Offset > sources.Meta.Count {
+			log.Printf("Requested availability for %v sources, waiting for all routines to complete...", sources.Meta.Count)
 			break
 		}
 
@@ -71,50 +68,53 @@ func main() {
 	wg.Wait()
 }
 
+// GET /internal/v2.0/sources?limit=xx&offset=xx
 // hit the internal sources api, parse it into a struct and return.
 func listInternalSources(limit, offset int64) *SourceResponse {
+	log.Printf("Requesting [limit %v] + [offset %v] status from internal API at [%v]", limit, offset, host)
+
 	url, _ := url.Parse(fmt.Sprintf("%v/internal/v2.0/sources?limit=%v&offset=%v", host, limit, offset))
 	req := &http.Request{Method: "GET", URL: url, Header: map[string][]string{
 		"x-rh-sources-account-number": {"sources_monitor"},
 		"x-rh-sources-psk":            {psk},
 	}}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil || resp.StatusCode != 200 {
-		fmt.Fprintf(os.Stderr, "Failed to list internal sources: %v", err)
-		os.Exit(1)
+		log.Fatalf("Failed to list internal sources: %v", err)
 	}
+	defer resp.Body.Close()
 
 	data, _ := ioutil.ReadAll(resp.Body)
 	sources := &SourceResponse{}
 	err = json.Unmarshal(data, sources)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to unmarshal sources: %v", err)
-		os.Exit(1)
+		log.Fatalf("Failed to unmarshal sources: %v", err)
 	}
 
 	return sources
 }
 
-// POST /sources/:id/check_availability for a tenant's source
+// POST /sources/:id/check_availability
+// checking availability for a tenant's source
 func checkAvailability(id, tenant string) {
-	// send an empty struct onto the choke channel - this limits us to the
-	// size of the channel as far as requests running at once
-	choke <- struct{}{}
-
-	fmt.Printf("Requesting availability status for tenant %v, source %v\n", tenant, id)
+	log.Printf("Requesting availability status for [tenant %v], [source %v]", tenant, id)
 
 	url, _ := url.Parse(fmt.Sprintf("%v/api/sources/v3.1/sources/%v/check_availability", host, id))
 	req := &http.Request{Method: "POST", URL: url, Header: map[string][]string{
 		"x-rh-sources-account-number": {tenant},
 		"x-rh-sources-psk":            {psk},
 	}}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil || resp.StatusCode != 202 {
-		fmt.Fprintf(os.Stderr, "Failed to request availability for tenant %v source id: %v\n", tenant, id)
+		log.Printf("Failed to request availability for [tenant %v], [source %v]", tenant, id)
+		if resp != nil {
+			log.Printf("Request status code: %v", resp.StatusCode)
+		}
 	}
+	defer resp.Body.Close()
 
 	// consume one value from the choke so another waiting routine can use it.
 	<-choke
-	// remove one from the waitgroup, since we're done.
+	// remove one from the waitgroup, since this routine is terminating.
 	wg.Done()
 }
