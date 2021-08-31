@@ -25,5 +25,8 @@ lint:
 gci:
 	golangci-lint run -E gci --fix
 
+container:
+	docker build . -t sources-monitor-go
 
-.PHONY: build clean run inlinerun lint gci available unavailable
+
+.PHONY: build clean run inlinerun lint gci available unavailable container
