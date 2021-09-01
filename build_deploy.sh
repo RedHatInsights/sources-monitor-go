@@ -3,7 +3,8 @@
 set -exv
 
 IMAGE="quay.io/cloudservices/sources-monitor-go"
-IMAGE_TAG=$(git rev-parse --short=7 HEAD)
+# specifying main branch instead of HEAD, jenkins was angry
+IMAGE_TAG=$(git rev-parse --short=7 main)
 
 if [[ -z "$QUAY_USER" || -z "$QUAY_TOKEN" ]]; then
     echo "QUAY_USER and QUAY_TOKEN must be set"
