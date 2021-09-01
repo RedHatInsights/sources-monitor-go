@@ -38,6 +38,8 @@ func main() {
 	}
 	log.Printf("Checking sources with [%v] status from [%v]", *status, host)
 
+	// a count of how many requests we do
+	count := 0
 	// first page of sources
 	sources := listInternalSources(100, 0)
 	for {
@@ -45,6 +47,7 @@ func main() {
 		// for those that match the `-status` flag.
 		for _, s := range sources.Data {
 			if *status == "all" || s.AvailabilityStatus == *status {
+				count++
 				// Add one to the "in-flight" waitgroup so we know what to wait for
 				wg.Add(1)
 				// send an empty struct onto the choke channel - this limits us to the
@@ -55,7 +58,7 @@ func main() {
 		}
 		// if we hit the last page, break out of the loop.
 		if sources.Meta.Limit+sources.Meta.Offset > sources.Meta.Count {
-			log.Printf("Requested availability for %v sources, waiting for all routines to complete...", sources.Meta.Count)
+			log.Printf("Requested availability for %v sources, waiting for all routines to complete...", count)
 			break
 		}
 
@@ -71,7 +74,7 @@ func main() {
 // GET /internal/v2.0/sources?limit=xx&offset=xx
 // hit the internal sources api, parse it into a struct and return.
 func listInternalSources(limit, offset int64) *SourceResponse {
-	log.Printf("Requesting [limit %v] + [offset %v] status from internal API at [%v]", limit, offset, host)
+	log.Printf("Requesting [limit %v] + [offset %v] sources from internal API at [%v]", limit, offset, host)
 
 	url, _ := url.Parse(fmt.Sprintf("%v/internal/v2.0/sources?limit=%v&offset=%v", host, limit, offset))
 	req := &http.Request{Method: "GET", URL: url, Header: map[string][]string{
