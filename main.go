@@ -82,7 +82,7 @@ func listInternalSources(limit, offset int64) *SourceResponse {
 		"x-rh-sources-psk":            {psk},
 	}}
 	resp, err := httpClient.Do(req)
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil || (resp != nil && resp.StatusCode != 200) {
 		log.Fatalf("Failed to list internal sources: %v", err)
 	}
 	defer resp.Body.Close()
@@ -108,7 +108,7 @@ func checkAvailability(id, tenant string) {
 		"x-rh-sources-psk":            {psk},
 	}}
 	resp, err := httpClient.Do(req)
-	if err != nil || resp.StatusCode != 202 {
+	if err != nil || (resp != nil && resp.StatusCode != 202) {
 		log.Printf("Failed to request availability for [tenant %v], [source %v]", tenant, id)
 		if resp != nil {
 			log.Printf("Request status code: %v", resp.StatusCode)
