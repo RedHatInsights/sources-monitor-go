@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -87,7 +87,7 @@ func listInternalSources(limit, offset int64) *SourceResponse {
 	}
 	defer resp.Body.Close()
 
-	data, _ := ioutil.ReadAll(resp.Body)
+	data, _ := io.ReadAll(resp.Body)
 	sources := &SourceResponse{}
 	err = json.Unmarshal(data, sources)
 	if err != nil {
