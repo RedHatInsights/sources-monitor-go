@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -77,17 +77,17 @@ func listInternalSources(limit, offset int64) *SourceResponse {
 	log.Printf("Requesting [limit %v] + [offset %v] sources from internal API at [%v]", limit, offset, host)
 
 	url, _ := url.Parse(fmt.Sprintf("%v/internal/v2.0/sources?limit=%v&offset=%v", host, limit, offset))
-	req := &http.Request{Method: "GET", URL: url, Header: map[string][]string{
+	req := &http.Request{Method: http.MethodGet, URL: url, Header: map[string][]string{
 		"x-rh-sources-account-number": {"sources_monitor"},
 		"x-rh-sources-psk":            {psk},
 	}}
 	resp, err := httpClient.Do(req)
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil || (resp != nil && resp.StatusCode != http.StatusOK) {
 		log.Fatalf("Failed to list internal sources: %v", err)
 	}
 	defer resp.Body.Close()
 
-	data, _ := ioutil.ReadAll(resp.Body)
+	data, _ := io.ReadAll(resp.Body)
 	sources := &SourceResponse{}
 	err = json.Unmarshal(data, sources)
 	if err != nil {
@@ -103,12 +103,12 @@ func checkAvailability(id, tenant string) {
 	log.Printf("Requesting availability status for [tenant %v], [source %v]", tenant, id)
 
 	url, _ := url.Parse(fmt.Sprintf("%v/api/sources/v3.1/sources/%v/check_availability", host, id))
-	req := &http.Request{Method: "POST", URL: url, Header: map[string][]string{
+	req := &http.Request{Method: http.MethodPost, URL: url, Header: map[string][]string{
 		"x-rh-sources-account-number": {tenant},
 		"x-rh-sources-psk":            {psk},
 	}}
 	resp, err := httpClient.Do(req)
-	if err != nil || resp.StatusCode != 202 {
+	if err != nil || (resp != nil && resp.StatusCode != http.StatusAccepted) {
 		log.Printf("Failed to request availability for [tenant %v], [source %v]", tenant, id)
 		if resp != nil {
 			log.Printf("Request status code: %v", resp.StatusCode)

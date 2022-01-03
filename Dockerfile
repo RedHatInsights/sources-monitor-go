@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi:8.4 as build
+FROM registry.access.redhat.com/ubi8/ubi:8.5 as build
 
 RUN mkdir /build
 WORKDIR /build
