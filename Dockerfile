@@ -1,9 +1,7 @@
-FROM registry.access.redhat.com/ubi8/ubi:8.5 as build
-
-RUN mkdir /build
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest as build
 WORKDIR /build
 
-RUN dnf -y --disableplugin=subscription-manager install go
+RUN microdnf install go
 
 COPY go.mod .
 RUN go mod download
