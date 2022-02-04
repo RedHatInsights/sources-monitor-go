@@ -73,10 +73,14 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
 parameters:
-- name: CPU_LIMIT
-  value: 250m
 - name: CPU_REQUEST
-  value: 50m
+  value: 75m
+- name: CPU_LIMIT
+  value: 150m
+- name: MEMORY_REQUEST
+  value: 50Mi
+- name: MEMORY_LIMIT
+  value: 100Mi
 - description: Clowder ENV
   name: ENV_NAME
   required: true
@@ -86,10 +90,6 @@ parameters:
 - description: Image tag
   name: IMAGE_TAG
   required: true
-- name: MEMORY_LIMIT
-  value: 100Mi
-- name: MEMORY_REQUEST
-  value: 25Mi
 - description: Schedule for Sources with available status
   displayName: Schedule for Available Sources
   name: SCHEDULE_AVAILABLE
