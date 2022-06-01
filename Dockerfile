@@ -1,3 +1,5 @@
+# This comment inteds to force a rebuild with the latest image to fulfill the
+# request from the security team to apply the latest patches.
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest as build
 WORKDIR /build
 
