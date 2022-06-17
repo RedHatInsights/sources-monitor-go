@@ -13,6 +13,9 @@ import (
 	"time"
 )
 
+// unavailableStatus holds the value used for unavailable statuses.
+const unavailableStatus = "unavailable"
+
 var (
 	// where is sources-api?
 	host = fmt.Sprintf("%v://%v:%v", os.Getenv("SOURCES_SCHEME"), os.Getenv("SOURCES_HOST"), os.Getenv("SOURCES_PORT"))
@@ -46,7 +49,7 @@ func main() {
 		// loop through all sources - requesting availability status updates
 		// for those that match the `-status` flag.
 		for _, s := range sources.Data {
-			if *status == "all" || s.AvailabilityStatus == *status {
+			if *status == "all" || availabilityStatusMatches(s.AvailabilityStatus, *status) {
 				count++
 				// Add one to the "in-flight" waitgroup so we know what to wait for
 				wg.Add(1)
@@ -120,4 +123,15 @@ func checkAvailability(id, tenant string) {
 	<-choke
 	// remove one from the waitgroup, since this routine is terminating.
 	wg.Done()
+}
+
+// availabilityStatusMatches returns true if both the source status and the target status match, which implies that the
+// current source should be checked for an availability status. In the case of having an "unavailable" target status,
+// the empty string is also considered as "unavailable".
+func availabilityStatusMatches(sourceStatus string, targetStatus string) bool {
+	if targetStatus == unavailableStatus {
+		return sourceStatus == targetStatus || sourceStatus == ""
+	}
+
+	return sourceStatus == targetStatus
 }
