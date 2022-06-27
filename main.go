@@ -49,10 +49,6 @@ func main() {
 		// loop through all sources - requesting availability status updates
 		// for those that match the `-status` flag.
 		for _, s := range sources.Data {
-			if s.ID == "242154" {
-				log.Printf("Processing source - ID: %v, TenantID: %v, s.AvailabilityStatus: %v, Requested status: %v", s.ID, s.Tenant, s.AvailabilityStatus, *status)
-			}
-
 			if *status == "all" || availabilityStatusMatches(s.AvailabilityStatus, *status) {
 				count++
 				// Add one to the "in-flight" waitgroup so we know what to wait for
