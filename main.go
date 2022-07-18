@@ -56,7 +56,7 @@ func main() {
 				// send an empty struct onto the choke channel - this limits us to the
 				// size of the channel as far as requests running at once
 				choke <- struct{}{}
-				go checkAvailability(s.ID, s.Tenant)
+				go checkAvailability(s.ID, s.Tenant, s.OrgId)
 			} else {
 				log.Printf("Skipped source - ID: %v, TenantID: %v, s.AvailabilityStatus: %v, Requested status: %v", s.ID, s.Tenant, s.AvailabilityStatus, *status)
 			}
@@ -104,14 +104,23 @@ func listInternalSources(limit, offset int64) *SourceResponse {
 
 // POST /sources/:id/check_availability
 // checking availability for a tenant's source
-func checkAvailability(id, tenant string) {
+func checkAvailability(id, tenant, orgId string) {
 	log.Printf("Requesting availability status for [tenant %v], [source %v]", tenant, id)
 
 	url, _ := url.Parse(fmt.Sprintf("%v/api/sources/v3.1/sources/%v/check_availability", host, id))
-	req := &http.Request{Method: http.MethodPost, URL: url, Header: map[string][]string{
-		"x-rh-sources-account-number": {tenant},
-		"x-rh-sources-psk":            {psk},
-	}}
+
+	requestHeaders := make(map[string][]string)
+	requestHeaders["x-rh-sources-psk"] = []string{psk}
+
+	if tenant != "" {
+		requestHeaders["x-rh-sources-account-number"] = []string{tenant}
+	}
+
+	if orgId != "" {
+		requestHeaders["x-rh-sources-org-id"] = []string{orgId}
+	}
+
+	req := &http.Request{Method: http.MethodPost, URL: url, Header: requestHeaders}
 	resp, err := httpClient.Do(req)
 	if err != nil || (resp != nil && resp.StatusCode != http.StatusAccepted) {
 		log.Printf("Failed to request availability for [tenant %v], [source %v]", tenant, id)
