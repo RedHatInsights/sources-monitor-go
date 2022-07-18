@@ -50,3 +50,7 @@ go build
 2021/08/30 10:35:23 Requested availability for 104 sources, waiting for all routines to complete...
 2021/08/30 10:35:23 Requesting availability status for [tenant 6089719], [source 112]
 ```
+
+## License
+
+This project is available as open source under the terms of the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).
