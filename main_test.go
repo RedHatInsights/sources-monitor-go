@@ -12,7 +12,7 @@ const (
 
 // TestAvailabilityStatusMatches tests if the function under test returns "true" only when the source status matches
 // the target status. It also tests that a "true" is returned when the target status is "unavailable" and the source's
-// status is empty.
+// status is empty or the source's status is "in_progress".
 func TestAvailabilityStatusMatches(t *testing.T) {
 	testData := []struct {
 		SourceStatus        string
@@ -24,7 +24,7 @@ func TestAvailabilityStatusMatches(t *testing.T) {
 		{partiallyAvailableStatus, availableStatus, false},
 		{unavailableStatus, availableStatus, false},
 		{availableStatus, unavailableStatus, false},
-		{inProgressStatus, unavailableStatus, false},
+		{inProgressStatus, unavailableStatus, true},
 		{partiallyAvailableStatus, unavailableStatus, false},
 		{unavailableStatus, unavailableStatus, true},
 		{"", unavailableStatus, true},

@@ -138,10 +138,10 @@ func checkAvailability(id, tenant, orgId string) {
 
 // availabilityStatusMatches returns true if both the source status and the target status match, which implies that the
 // current source should be checked for an availability status. In the case of having an "unavailable" target status,
-// the empty string is also considered as "unavailable".
+// the empty string is also considered as "unavailable", and the "in_progress" one too.
 func availabilityStatusMatches(sourceStatus string, targetStatus string) bool {
 	if targetStatus == unavailableStatus {
-		return sourceStatus == targetStatus || sourceStatus == ""
+		return sourceStatus == targetStatus || sourceStatus == "" || sourceStatus == "in_progress"
 	}
 
 	return sourceStatus == targetStatus
