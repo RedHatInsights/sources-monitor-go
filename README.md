@@ -23,10 +23,10 @@ It does the availbility checking requests in parallel, using the `choke` unbuffe
 Main Application logic is in `main.go`, the response struct (and other types in the future) will live in `types.go` A `Makefile` is provided for easy building/running.
 
 In order to run without minikube/ephemeral environment - one just needs to provide the `SOURCES_*` variables like in the clowdapp template:
-- SOURCES_SCHEME
-- SOURCES_HOST
-- SOURCES_PORT
-- SOURCES_PSK
+- `SOURCES_SCHEME`
+- `SOURCES_HOST`
+- `SOURCES_PORT`
+- `SOURCES_PSK`
 
 Once ran the output is similar to this:
 ```text
