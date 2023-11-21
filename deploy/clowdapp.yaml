@@ -16,6 +16,9 @@ objects:
       restartPolicy: Never
       startingDeadlineSeconds: 30
       podSpec:
+        securityContext:
+          runAsUser: 1000
+          runAsNonRoot: true
         image: ${IMAGE}:${IMAGE_TAG}
         command:
         - /sources-monitor-go
@@ -47,6 +50,9 @@ objects:
       restartPolicy: Never
       startingDeadlineSeconds: 30
       podSpec:
+        securityContext:
+          runAsUser: 1000
+          runAsNonRoot: true
         image: ${IMAGE}:${IMAGE_TAG}
         command:
         - /sources-monitor-go
