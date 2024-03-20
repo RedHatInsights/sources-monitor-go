@@ -10,17 +10,17 @@ The `deploy/clowdapp.yaml` file defines the schedule - but as of right now it ch
 |Unavailable|:15/:45 every hour|
 
 The application itself is really simple, it does this order of operations:
-1. GET /internal/v2.0/sources -- get a list of sources w/ tenants from the internal API
+1. `GET /internal/v2.0/sources` -- get a list of sources w/ tenants from the internal API
 2. Loop through all of them (paginated)
    1. If: availability_status matches what we're doing (available or unavailable)
-      1. POST /sources/:id/check_availability -- request an availability check for that source
+      1. `POST /sources/:id/check_availability` -- request an availability check for that source
    2. Else: continue the loop
 
 It does the availbility checking requests in parallel, using the `choke` unbuffered channel limiting the amount of in-flight requests at once. Currently (8/30/21) that number is set to 3 reqs at once.
 
 ### Dev Info
 
-Main Application logic is in `main.go`, the response struct (and other types in the future) will live in `types.go` A `Makefile` is provided for easy building/running.
+Main Application logic is in `main.go`, the response struct (and other types in the future) will live in `types.go`. A `Makefile` is provided for easy building/running.
 
 In order to run without minikube/ephemeral environment - one just needs to provide the `SOURCES_*` variables like in the clowdapp template:
 - `SOURCES_SCHEME`
