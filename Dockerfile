@@ -15,6 +15,4 @@ COPY --from=build /build/sources-monitor-go /sources-monitor-go
 
 COPY licenses/LICENSE /licenses/LICENSE
 
-USER 1001
-
 ENTRYPOINT ["/sources-monitor-go"]
