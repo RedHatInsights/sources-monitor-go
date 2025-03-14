@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -41,7 +42,7 @@ func main() {
 	flag.Parse()
 
 	// Check whether we need to skip empty sources when fetching them or not.
-	skipEmptySources := os.Getenv("SKIP_EMPTY_SOURCES") != "true"
+	skipEmptySources := strings.ToLower(os.Getenv("SKIP_EMPTY_SOURCES")) != "true"
 
 	if psk == "" {
 		log.Fatalf("Need PSK to run availability checks.")
