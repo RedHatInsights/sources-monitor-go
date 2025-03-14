@@ -111,7 +111,7 @@ parameters:
 - description: Skips fetching sources that are considered empty and for which availability checks are unnecessary to run.
   displayName: Skip fetching empty sources.
   name: SKIP_EMPTY_SOURCES
-  value: "false",
+  value: "false"
   required: true
 - description: Scheme to use for the Sources service URL.
   displayName: Sources Service Scheme
