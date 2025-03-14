@@ -25,6 +25,8 @@ objects:
         - -status
         - available
         env:
+        - name: SKIP_EMPTY_SOURCES
+          value: ${SKIP_EMPTY_SOURCES}
         - name: SOURCES_SCHEME
           value: ${SOURCES_SCHEME}
         - name: SOURCES_HOST
@@ -59,6 +61,8 @@ objects:
         - -status
         - unavailable
         env:
+        - name: SKIP_EMPTY_SOURCES
+          value: ${SKIP_EMPTY_SOURCES}
         - name: SOURCES_SCHEME
           value: ${SOURCES_SCHEME}
         - name: SOURCES_HOST
@@ -104,6 +108,11 @@ parameters:
   displayName: Schedule for Unavailable Sources
   name: SCHEDULE_UNAVAILABLE
   value: "15,45 */1 * * *"
+- description: Skips fetching sources that are considered empty and for which availability checks are unnecessary to run.
+  displayName: Skip fetching empty sources.
+  name: SKIP_EMPTY_SOURCES
+  value: "false",
+  required: true
 - description: Scheme to use for the Sources service URL.
   displayName: Sources Service Scheme
   name: SOURCES_SCHEME

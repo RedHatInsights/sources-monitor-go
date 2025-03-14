@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+// skipEmptySourcesHeader defines the header's name that will allow the monitor to skip empty sources when fetching
+// them from the API.
+const skipEmptySourcesHeader = "x-rh-sources-skip-empty-sources"
+
 // unavailableStatus holds the value used for unavailable statuses.
 const unavailableStatus = "unavailable"
 
@@ -36,6 +40,9 @@ func main() {
 	status := flag.String("status", "all", "which availability_status to check")
 	flag.Parse()
 
+	// Check whether we need to skip empty sources when fetching them or not.
+	skipEmptySources := os.Getenv("SKIP_EMPTY_SOURCES") != "true"
+
 	if psk == "" {
 		log.Fatalf("Need PSK to run availability checks.")
 	}
@@ -44,7 +51,7 @@ func main() {
 	// a count of how many requests we do
 	count := 0
 	// first page of sources
-	sources := listInternalSources(100, 0)
+	sources := listInternalSources(100, 0, skipEmptySources)
 	for {
 		// loop through all sources - requesting availability status updates
 		// for those that match the `-status` flag.
@@ -56,7 +63,7 @@ func main() {
 				// send an empty struct onto the choke channel - this limits us to the
 				// size of the channel as far as requests running at once
 				choke <- struct{}{}
-				go checkAvailability(s.ID, s.Tenant, s.OrgId)
+				go checkAvailability(s.ID, s.Tenant, s.OrgId, skipEmptySources)
 			} else {
 				log.Printf("Skipped source - ID: %v, TenantID: %v, s.AvailabilityStatus: %v, Requested status: %v", s.ID, s.Tenant, s.AvailabilityStatus, *status)
 			}
@@ -68,7 +75,7 @@ func main() {
 		}
 
 		// next page!
-		sources = listInternalSources(sources.Meta.Limit, sources.Meta.Offset+sources.Meta.Limit)
+		sources = listInternalSources(sources.Meta.Limit, sources.Meta.Offset+sources.Meta.Limit, skipEmptySources)
 	}
 
 	// wait for all requests to complete at the end so the program doesn't
@@ -78,7 +85,7 @@ func main() {
 
 // GET /internal/v2.0/sources?limit=xx&offset=xx
 // hit the internal sources api, parse it into a struct and return.
-func listInternalSources(limit, offset int64) *SourceResponse {
+func listInternalSources(limit, offset int64, skipEmptySources bool) *SourceResponse {
 	log.Printf("Requesting [limit %v] + [offset %v] sources from internal API at [%v]", limit, offset, host)
 
 	url, _ := url.Parse(fmt.Sprintf("%v/internal/v2.0/sources?limit=%v&offset=%v", host, limit, offset))
@@ -86,6 +93,13 @@ func listInternalSources(limit, offset int64) *SourceResponse {
 		"x-rh-sources-account-number": {"sources_monitor"},
 		"x-rh-sources-psk":            {psk},
 	}}
+
+	// Signal the Sources API that we might just be interested in fetching sources that do require an availability
+	// check.
+	if skipEmptySources {
+		req.Header.Add(skipEmptySourcesHeader, "true")
+	}
+
 	resp, err := httpClient.Do(req)
 	if err != nil || (resp != nil && resp.StatusCode != http.StatusOK) {
 		log.Fatalf("Failed to list internal sources: %v", err)
@@ -104,7 +118,7 @@ func listInternalSources(limit, offset int64) *SourceResponse {
 
 // POST /sources/:id/check_availability
 // checking availability for a tenant's source
-func checkAvailability(id, tenant, orgId string) {
+func checkAvailability(id, tenant, orgId string, skipEmptySources bool) {
 	log.Printf("Requesting availability status for [tenant %v], [source %v]", tenant, id)
 
 	url, _ := url.Parse(fmt.Sprintf("%v/api/sources/v3.1/sources/%v/check_availability", host, id))
@@ -118,6 +132,11 @@ func checkAvailability(id, tenant, orgId string) {
 
 	if orgId != "" {
 		requestHeaders["x-rh-sources-org-id"] = []string{orgId}
+	}
+
+	// Signal the Sources API that we do not want to run availability checks for empty sources.
+	if skipEmptySources {
+		requestHeaders[skipEmptySourcesHeader] = []string{"true"}
 	}
 
 	req := &http.Request{Method: http.MethodPost, URL: url, Header: requestHeaders}
