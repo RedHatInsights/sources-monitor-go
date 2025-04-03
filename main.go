@@ -47,7 +47,7 @@ func main() {
 	if psk == "" {
 		log.Fatalf("Need PSK to run availability checks.")
 	}
-	log.Printf("Checking sources with [%v] status from [%v]", *status, host)
+	log.Printf("[host: %s][status: %s][skip_empty_sources: %t] Checking sources", host, *status, skipEmptySources)
 
 	// a count of how many requests we do
 	count := 0
@@ -66,7 +66,7 @@ func main() {
 				choke <- struct{}{}
 				go checkAvailability(s.ID, s.Tenant, s.OrgId, skipEmptySources)
 			} else {
-				log.Printf("Skipped source - ID: %v, TenantID: %v, s.AvailabilityStatus: %v, Requested status: %v", s.ID, s.Tenant, s.AvailabilityStatus, *status)
+				log.Printf("[id: %s][account_number: %s][org_id: %s][availability_status: %s][requested_status: %s] Skipped source", s.ID, s.Tenant, s.OrgId, s.AvailabilityStatus, *status)
 			}
 		}
 		// if we hit the last page, break out of the loop.
@@ -87,7 +87,7 @@ func main() {
 // GET /internal/v2.0/sources?limit=xx&offset=xx
 // hit the internal sources api, parse it into a struct and return.
 func listInternalSources(limit, offset int64, skipEmptySources bool) *SourceResponse {
-	log.Printf("Requesting [limit %v] + [offset %v] sources from internal API at [%v]", limit, offset, host)
+	log.Printf("[limit: %d][offset: %d][host: %v][skip_empty_sources: %t] Requesting sources from internal API", limit, offset, host, skipEmptySources)
 
 	url, _ := url.Parse(fmt.Sprintf("%v/internal/v2.0/sources?limit=%v&offset=%v", host, limit, offset))
 	req := &http.Request{Method: http.MethodGet, URL: url, Header: map[string][]string{
@@ -103,7 +103,7 @@ func listInternalSources(limit, offset int64, skipEmptySources bool) *SourceResp
 
 	resp, err := httpClient.Do(req)
 	if err != nil || (resp != nil && resp.StatusCode != http.StatusOK) {
-		log.Fatalf("Failed to list internal sources: %v", err)
+		log.Fatalf("Failed to list internal sources: %s", err)
 	}
 	defer resp.Body.Close()
 
@@ -111,7 +111,7 @@ func listInternalSources(limit, offset int64, skipEmptySources bool) *SourceResp
 	sources := &SourceResponse{}
 	err = json.Unmarshal(data, sources)
 	if err != nil {
-		log.Fatalf("Failed to unmarshal sources: %v", err)
+		log.Fatalf("Failed to unmarshal sources: %s", err)
 	}
 
 	return sources
@@ -120,7 +120,7 @@ func listInternalSources(limit, offset int64, skipEmptySources bool) *SourceResp
 // POST /sources/:id/check_availability
 // checking availability for a tenant's source
 func checkAvailability(id, tenant, orgId string, skipEmptySources bool) {
-	log.Printf("Requesting availability status for [tenant %v], [source %v]", tenant, id)
+	log.Printf("[source_id: %s][account_id: %s][org_id: %s][skip_empty_sources: %t] Requesting availability status for source", id, tenant, orgId, skipEmptySources)
 
 	url, _ := url.Parse(fmt.Sprintf("%v/api/sources/v3.1/sources/%v/check_availability", host, id))
 
@@ -143,7 +143,7 @@ func checkAvailability(id, tenant, orgId string, skipEmptySources bool) {
 	req := &http.Request{Method: http.MethodPost, URL: url, Header: requestHeaders}
 	resp, err := httpClient.Do(req)
 	if err != nil || (resp != nil && resp.StatusCode != http.StatusAccepted) {
-		log.Printf("Failed to request availability for [tenant %v], [source %v]", tenant, id)
+		log.Printf("[source_id: %s][account_number: %s][org_id: %s][skip_empty_sources: %t] Failed to request availability source", id, tenant, orgId, skipEmptySources)
 		if resp != nil {
 			log.Printf("Request status code: %v", resp.StatusCode)
 		}
