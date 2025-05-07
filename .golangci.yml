@@ -1,0 +1,149 @@
+# Configuration for the golang-gci utility.
+#
+# There are some disabled linters that enabling them would help us improve our
+# code's quality. However, enabling them requires some refactoring work in the
+# codebase.
+#
+# The disabled linters are tagged as follows —order matters—:
+#
+# - Must have: they include very important and insightful checks that will
+#              significantly improve the codebase's quality, resiliency,
+#              security and maintainability.
+# - Nice to have: they might improve some aspects of the code, but they are
+#                 not as important.
+# - Untagged: they might just be cosmetic changes or linters that would end up
+#             making the development experience way too painful.
+
+version: "2"
+linters:
+  default: all
+  disable:
+    - canonicalheader # nice to have.
+    - cyclop
+    - depguard
+    - dupl
+    - exhaustruct
+    - forbidigo
+    - funcorder
+    - funlen
+    - gochecknoglobals # must have.
+    - gocognit
+    - gocritic # must have.
+    - gocyclo
+    - godot # nice to have.
+    - interfacebloat
+    - lll
+    - maintidx
+    - mnd
+    - nakedret
+    - nestif
+    - nlreturn # nice to have.
+    - paralleltest # nice to have.
+    - revive # nice to have.
+    - tagliatelle
+    - testpackage
+    - varnamelen
+    - wrapcheck
+    - wsl # nice to have.
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - copyloopvar
+    - decorder
+    - decorder
+    - dogsled
+    - dupword
+    - durationcheck
+    - err113
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - exptostd
+    - fatcontext
+    - forcetypeassert
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - gochecksumtype
+    - goconst
+    - godox
+    - goheader
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - gosmopolitan
+    - govet
+    - grouper
+    - iface
+    - importas
+    - inamedparam
+    - ineffassign
+    - intrange
+    - ireturn
+    - loggercheck
+    - makezero
+    - mirror
+    - misspell
+    - musttag
+    - nakedret
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    - recvcheck
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - staticcheck
+    - tagalign
+    - testableexamples
+    - testifylint
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+    - whitespace
+    - zerologlint
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - forcetypeassert
+        path: (.+)_test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
