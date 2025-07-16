@@ -6,7 +6,6 @@ RUN microdnf install --assumeyes go
 
 ARG GOARCH=amd64
 ARG GOOS=linux
-ARG GOTOOLCHAIN=go1.24.3
 
 COPY . .
 
