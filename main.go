@@ -148,6 +148,7 @@ func checkAvailability(id, tenant, orgId string, skipEmptySources bool) {
 			log.Printf("Request status code: %v", resp.StatusCode)
 		}
 	}
+
 	if resp != nil {
 		defer resp.Body.Close()
 	}
