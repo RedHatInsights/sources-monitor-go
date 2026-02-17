@@ -148,7 +148,10 @@ func checkAvailability(id, tenant, orgId string, skipEmptySources bool) {
 			log.Printf("Request status code: %v", resp.StatusCode)
 		}
 	}
-	defer resp.Body.Close()
+
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 
 	// consume one value from the choke so another waiting routine can use it.
 	<-choke
