@@ -8,7 +8,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
       == "main"
-    pipelinesascode.tekton.dev/pipeline: https://github.com/RedHatInsights/konflux-pipelines/raw/v1.61.0/pipelines/docker-build.yaml
+    pipelinesascode.tekton.dev/pipeline: https://github.com/RedHatInsights/konflux-pipelines/raw/v1.64.0/pipelines/docker-build-oci-ta.yaml
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: sources
@@ -33,7 +33,7 @@ spec:
   - name: prefetch-input
     value: '[{"type": "gomod", "path": "."}]'
   pipelineRef:
-    name: docker-build
+    name: docker-build-oci-ta
   taskRunTemplate:
     serviceAccountName: build-pipeline-sources-monitor-go
   workspaces:
