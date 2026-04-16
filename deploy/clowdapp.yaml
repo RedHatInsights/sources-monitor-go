@@ -96,7 +96,7 @@ parameters:
   required: true
 - description: Image
   name: IMAGE
-  value: quay.io/cloudservices/sources-monitor-go
+  value: quay.io/redhat-user-workloads/hcc-integrations-tenant/sources/sources-monitor-go
 - description: Image tag
   name: IMAGE_TAG
   required: true
