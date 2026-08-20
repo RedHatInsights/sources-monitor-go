@@ -6,7 +6,6 @@ WORKDIR /build
 
 ARG GOARCH=amd64
 ARG GOOS=linux
-ENV GOTOOLCHAIN=auto
 
 COPY . .
 
