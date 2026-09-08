@@ -29,8 +29,8 @@ const skipEmptySourcesHeader = "x-rh-sources-skip-empty-sources"
 const unavailableStatus = "unavailable"
 
 var (
-	// what scheme to connect with
-	scheme = os.Getenv("SOURCES_SCHEME")
+	// what scheme to connect with — defaults to "http" if unset
+	scheme = normalizeScheme(os.Getenv("SOURCES_SCHEME"))
 	// where is sources-api?
 	host = fmt.Sprintf("%v://%v:%v", scheme, os.Getenv("SOURCES_HOST"), os.Getenv("SOURCES_PORT"))
 	// how can we talk to it?
@@ -184,9 +184,23 @@ func checkAvailability(id, tenant, orgId string, skipEmptySources bool) {
 	wg.Done()
 }
 
+// normalizeScheme lowercases and trims the scheme string, defaulting to "http"
+// if empty. This prevents malformed URLs when SOURCES_SCHEME is unset and
+// ensures case-insensitive comparisons work correctly.
+func normalizeScheme(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	if s == "" {
+		return "http"
+	}
+
+	return s
+}
+
 // configureTLSTransport creates an http.Transport with TLS configuration.
-// If caPath is non-empty, the CA certificate at that path is loaded into the
-// TLS root CA pool. Otherwise, the system certificate pool is used.
+// It clones http.DefaultTransport to inherit proxy settings (HTTP_PROXY/HTTPS_PROXY),
+// then applies custom TLS configuration. If caPath is non-empty, the CA certificate
+// at that path is loaded into the TLS root CA pool. Otherwise, the system certificate
+// pool is used.
 func configureTLSTransport(caPath string) (*http.Transport, error) {
 	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12} //nolint:exhaustruct_v5 // stdlib struct — only custom fields needed
 
@@ -208,7 +222,19 @@ func configureTLSTransport(caPath string) (*http.Transport, error) {
 		log.Printf("Loaded custom CA certificate from configured path")
 	}
 
-	return &http.Transport{TLSClientConfig: tlsConfig}, nil //nolint:exhaustruct_v5 // stdlib struct
+	// Clone DefaultTransport to inherit proxy settings and sensible defaults.
+	base, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, fmt.Errorf("http.DefaultTransport is not *http.Transport")
+	}
+
+	transport := base.Clone()
+	transport.TLSClientConfig = tlsConfig
+	transport.ForceAttemptHTTP2 = true
+	transport.TLSHandshakeTimeout = 10 * time.Second
+	transport.MaxConnsPerHost = 3 // match choke channel size to avoid connection churn
+
+	return transport, nil
 }
 
 // availabilityStatusMatches returns true if both the source status and the target status match, which implies that the

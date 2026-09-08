@@ -13,6 +13,30 @@ const (
 	partiallyAvailableStatus = "partially_available"
 )
 
+// TestNormalizeScheme verifies that normalizeScheme handles empty, uppercase,
+// and whitespace-padded values correctly.
+func TestNormalizeScheme(t *testing.T) {
+	testData := []struct {
+		input    string
+		expected string
+	}{
+		{"", "http"},
+		{"http", "http"},
+		{"https", "https"},
+		{"HTTP", "http"},
+		{"HTTPS", "https"},
+		{"  https  ", "https"},
+		{"Http", "http"},
+	}
+
+	for _, td := range testData {
+		got := normalizeScheme(td.input)
+		if got != td.expected {
+			t.Errorf("normalizeScheme(%q) = %q, want %q", td.input, got, td.expected)
+		}
+	}
+}
+
 // TestConfigureTLSTransport tests the TLS transport configuration function.
 func TestConfigureTLSTransport(t *testing.T) {
 	t.Run("empty CA path uses system certificate pool", func(t *testing.T) {
@@ -27,6 +51,14 @@ func TestConfigureTLSTransport(t *testing.T) {
 
 		if transport.TLSClientConfig.RootCAs != nil {
 			t.Error("expected nil RootCAs (system pool) when no CA path specified")
+		}
+
+		if !transport.ForceAttemptHTTP2 {
+			t.Error("expected ForceAttemptHTTP2 to be true")
+		}
+
+		if transport.MaxConnsPerHost != 3 {
+			t.Errorf("expected MaxConnsPerHost=3, got %d", transport.MaxConnsPerHost)
 		}
 	})
 
