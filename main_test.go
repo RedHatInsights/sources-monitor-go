@@ -11,6 +11,9 @@ const (
 	availableStatus          = "available"
 	inProgressStatus         = "in_progress"
 	partiallyAvailableStatus = "partially_available"
+
+	schemeHTTP  = "http"
+	schemeHTTPS = "https"
 )
 
 // TestNormalizeScheme verifies that normalizeScheme handles empty, uppercase,
@@ -20,13 +23,13 @@ func TestNormalizeScheme(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"", "http"},
-		{"http", "http"},
-		{"https", "https"},
-		{"HTTP", "http"},
-		{"HTTPS", "https"},
-		{"  https  ", "https"},
-		{"Http", "http"},
+		{"", schemeHTTP},
+		{schemeHTTP, schemeHTTP},
+		{schemeHTTPS, schemeHTTPS},
+		{"HTTP", schemeHTTP},
+		{"HTTPS", schemeHTTPS},
+		{"  https  ", schemeHTTPS},
+		{"Http", schemeHTTP},
 	}
 
 	for _, td := range testData {

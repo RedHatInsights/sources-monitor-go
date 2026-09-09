@@ -21,6 +21,9 @@ import (
 // errNoCertsFound is returned when the CA certificate file contains no valid PEM certificates.
 var errNoCertsFound = errors.New("no valid certificates found")
 
+// errNotHTTPTransport is returned when http.DefaultTransport is not *http.Transport.
+var errNotHTTPTransport = errors.New("http.DefaultTransport is not *http.Transport")
+
 // skipEmptySourcesHeader defines the header's name that will allow the monitor to skip empty sources when fetching
 // them from the API.
 const skipEmptySourcesHeader = "x-rh-sources-skip-empty-sources"
@@ -225,7 +228,7 @@ func configureTLSTransport(caPath string) (*http.Transport, error) {
 	// Clone DefaultTransport to inherit proxy settings and sensible defaults.
 	base, ok := http.DefaultTransport.(*http.Transport)
 	if !ok {
-		return nil, fmt.Errorf("http.DefaultTransport is not *http.Transport")
+		return nil, errNotHTTPTransport
 	}
 
 	transport := base.Clone()
