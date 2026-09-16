@@ -4,11 +4,13 @@
 # Bash safety options:
 #   - e is for exiting immediately when a command exits with a non-zero status.
 #   - u is for treating unset variables as an error when substituting.
-#   - x is for printing all the commands as they're executed.
 #   - o pipefail is for taking into account the exit status of the commands
 #     that run on pipelines.
 #
-set -euxo pipefail
+# Note: xtrace (-x) is deferred until after variable setup and suppressed
+# around credential-bearing commands to prevent token exposure (CWE-532).
+#
+set -euo pipefail
 
 #
 # Copy the repository contents so we don't have to deal with changing
@@ -19,12 +21,19 @@ readonly source_dir
 
 cp --recursive "/repository" "${source_dir}"
 
+# Enable xtrace for non-sensitive setup above
+set -x
+
 #
 # Run the sonar scanner.
 #
 #
 # On the main branch there is no need to give the pull request details.
 #
+# Suppress xtrace around sonar-scanner to avoid leaking SONARQUBE_TOKEN
+# to build logs (CWE-532).
+#
+{ set +x; } 2>/dev/null
 if [ -n "${GIT_BRANCH:-}" ] && { [ "${GIT_BRANCH}" == "main" ] || [ "${GIT_BRANCH}" == "origin/main" ]; }; then
   sonar-scanner \
     -Dsonar.exclusions="**/*.sql" \
@@ -49,6 +58,7 @@ else
     -Dsonar.sources="${source_dir}/repository" \
     -Dsonar.token="${SONARQUBE_TOKEN}"
 fi
+set -x
 
 #
 # Clean the directory of the repository.

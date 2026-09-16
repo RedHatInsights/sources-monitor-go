@@ -4,11 +4,13 @@
 # Bash safety options:
 #   - e is for exiting immediately when a command exits with a non-zero status.
 #   - u is for treating unset variables as an error when substituting.
-#   - x is for printing all the commands as they're executed.
 #   - o pipefail is for taking into account the exit status of the commands
 #     that run on pipelines.
 #
-set -euxo pipefail
+# Note: xtrace (-x) is deferred until after variable setup and suppressed
+# around credential-bearing commands to prevent token exposure (CWE-532).
+#
+set -euo pipefail
 
 #
 # Get the commit SHA to give the scanner a unique "project version" setting.
@@ -28,6 +30,9 @@ readonly current_directory
 project_key="sources-monitor-go"
 readonly project_key
 
+# Enable xtrace for non-sensitive setup above
+set -x
+
 #
 # Run the Sonar Scanner in a container. The "repository" directory is just the
 # source code, and we mount it to be able to scan the source code.
@@ -39,13 +44,18 @@ readonly project_key
 # the runner has SELinux activated, and that we need to relabel the directory
 # to have permission to read it. More information here: https://www.reddit.com/r/podman/comments/fww87v/permission_denied_within_mounted_volume_inside/
 #
+# Suppress xtrace around podman commands to avoid leaking SONARQUBE_TOKEN
+# to build logs (CWE-532). Pass the token by name so podman inherits it
+# from the environment without exposing the value on the command line.
+#
+{ set +x; } 2>/dev/null
 if [ -n "${GIT_BRANCH:-}" ] && { [ "${GIT_BRANCH}" == "main" ] || [ "${GIT_BRANCH}" == "origin/main" ]; }; then
   podman run \
     --env COMMIT_SHORT="${commit_short}" \
     --env GIT_BRANCH="${GIT_BRANCH}" \
     --env SONARQUBE_HOST_URL="${SONARQUBE_HOST_URL}" \
     --env SONARQUBE_PROJECT_KEY="${project_key}" \
-    --env SONARQUBE_TOKEN="${SONARQUBE_TOKEN}" \
+    --env SONARQUBE_TOKEN \
     --rm \
     --volume "${current_directory}":/repository:z \
     images.paas.redhat.com/alm/sonar-scanner:latest \
@@ -57,12 +67,13 @@ else
     --env GITHUB_PULL_REQUEST_ID="${ghprbPullId}" \
     --env SONARQUBE_HOST_URL="${SONARQUBE_HOST_URL}" \
     --env SONARQUBE_PROJECT_KEY="${project_key}" \
-    --env SONARQUBE_TOKEN="${SONARQUBE_TOKEN}" \
+    --env SONARQUBE_TOKEN \
     --rm \
     --volume "${current_directory}":/repository:z \
     images.paas.redhat.com/alm/sonar-scanner:latest \
     bash /repository/scripts/scanner/scan_code.bash
 fi
+set -x
 
 # We need to make a dummy results file to make tests pass.
 mkdir -p artifacts
