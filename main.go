@@ -84,12 +84,12 @@ func main() {
 	wg.Wait()
 }
 
-// GET /internal/v2.0/sources?limit=xx&offset=xx
+// GET /internal/sources/v2/sources?limit=xx&offset=xx
 // hit the internal sources api, parse it into a struct and return.
 func listInternalSources(limit, offset int64, skipEmptySources bool) *SourceResponse {
 	log.Printf("[limit: %d][offset: %d][host: %v][skip_empty_sources: %t] Requesting sources from internal API", limit, offset, host, skipEmptySources)
 
-	url, _ := url.Parse(fmt.Sprintf("%v/internal/v2.0/sources?limit=%v&offset=%v", host, limit, offset))
+	url, _ := url.Parse(fmt.Sprintf("%v/internal/sources/v2/sources?limit=%v&offset=%v", host, limit, offset))
 	req := &http.Request{Method: http.MethodGet, URL: url, Header: map[string][]string{
 		"x-rh-sources-account-number": {"sources_monitor"},
 		"x-rh-sources-psk":            {psk},
