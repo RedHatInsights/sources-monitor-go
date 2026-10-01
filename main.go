@@ -21,11 +21,22 @@ const skipEmptySourcesHeader = "x-rh-sources-skip-empty-sources"
 // unavailableStatus holds the value used for unavailable statuses.
 const unavailableStatus = "unavailable"
 
+const (
+	// newInternalBasepath is the new standard internal API path format (/internal/{APP}/{VERSION}).
+	newInternalBasepath = "/internal/sources/v2"
+	// legacyInternalBasepath is the old internal API path format (/internal/{VERSION}).
+	legacyInternalBasepath = "/internal/v2.0"
+)
+
 var (
 	// where is sources-api?
 	host = fmt.Sprintf("%v://%v:%v", os.Getenv("SOURCES_SCHEME"), os.Getenv("SOURCES_HOST"), os.Getenv("SOURCES_PORT"))
 	// how can we talk to it?
 	psk = os.Getenv("SOURCES_PSK")
+
+	// internalBasepath is resolved at startup by probing the new path first
+	// and falling back to the legacy path if the new one is not available.
+	internalBasepath string
 
 	// global waitgroup to keep track of how many goroutines are running
 	wg = sync.WaitGroup{}
@@ -47,7 +58,11 @@ func main() {
 	if psk == "" {
 		log.Fatalf("Need PSK to run availability checks.")
 	}
-	log.Printf("[host: %s][status: %s][skip_empty_sources: %t] Checking sources", host, *status, skipEmptySources)
+
+	// Resolve which internal API basepath to use. Tries the new standard
+	// format first and falls back to the legacy format if not available.
+	internalBasepath = resolveInternalBasepath(host, psk, &httpClient)
+	log.Printf("[host: %s][basepath: %s][status: %s][skip_empty_sources: %t] Checking sources", host, internalBasepath, *status, skipEmptySources)
 
 	// a count of how many requests we do
 	count := 0
@@ -84,12 +99,45 @@ func main() {
 	wg.Wait()
 }
 
-// GET /internal/sources/v2/sources?limit=xx&offset=xx
+// resolveInternalBasepath probes the new standard internal API basepath first.
+// If the new path is not available (non-200 response), it falls back to the
+// legacy basepath. This allows sources-monitor-go to work during the migration
+// period regardless of whether sources-api-go has been updated.
+func resolveInternalBasepath(host, psk string, client *http.Client) string {
+	probeURL := fmt.Sprintf("%v%v/sources?limit=1&offset=0", host, newInternalBasepath)
+	req, err := http.NewRequest(http.MethodGet, probeURL, nil)
+	if err != nil {
+		log.Printf("Failed to create probe request: %s, using legacy basepath: %s", err, legacyInternalBasepath)
+		return legacyInternalBasepath
+	}
+	req.Header.Set("x-rh-sources-account-number", "sources_monitor")
+	req.Header.Set("x-rh-sources-psk", psk)
+
+	resp, err := client.Do(req)
+	if err == nil && resp != nil {
+		defer resp.Body.Close()
+		// Drain body so the connection can be reused.
+		io.Copy(io.Discard, resp.Body)
+		if resp.StatusCode == http.StatusOK {
+			log.Printf("Using new standard internal API basepath: %s", newInternalBasepath)
+			return newInternalBasepath
+		}
+		log.Printf("New basepath returned status %d, using legacy basepath: %s", resp.StatusCode, legacyInternalBasepath)
+		return legacyInternalBasepath
+	}
+
+	if err != nil {
+		log.Printf("New basepath probe failed: %s, using legacy basepath: %s", err, legacyInternalBasepath)
+	}
+	return legacyInternalBasepath
+}
+
+// GET /internal/sources/v2/sources?limit=xx&offset=xx (or /internal/v2.0/sources for legacy)
 // hit the internal sources api, parse it into a struct and return.
 func listInternalSources(limit, offset int64, skipEmptySources bool) *SourceResponse {
-	log.Printf("[limit: %d][offset: %d][host: %v][skip_empty_sources: %t] Requesting sources from internal API", limit, offset, host, skipEmptySources)
+	log.Printf("[limit: %d][offset: %d][host: %v][basepath: %v][skip_empty_sources: %t] Requesting sources from internal API", limit, offset, host, internalBasepath, skipEmptySources)
 
-	url, _ := url.Parse(fmt.Sprintf("%v/internal/sources/v2/sources?limit=%v&offset=%v", host, limit, offset))
+	url, _ := url.Parse(fmt.Sprintf("%v%v/sources?limit=%v&offset=%v", host, internalBasepath, limit, offset))
 	req := &http.Request{Method: http.MethodGet, URL: url, Header: map[string][]string{
 		"x-rh-sources-account-number": {"sources_monitor"},
 		"x-rh-sources-psk":            {psk},
