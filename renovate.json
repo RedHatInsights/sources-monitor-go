@@ -1,0 +1,18 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "baseBranchPatterns": [
+    "main"
+  ],
+  "minimumConfidence": "high",
+  "packageRules": [
+    {
+      "minimumConfidence": "neutral",
+      "matchPackageNames": [
+        "/konflux-pipelines/"
+      ]
+    }
+  ],
+  "tekton": {
+    "schedule": ["at any time"]
+  }
+}
