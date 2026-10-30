@@ -1,24 +1,36 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:latest as build
+################################
+# STEP 1 build executable binary
+################################
+FROM registry.access.redhat.com/hi/go:latest-fips-builder@sha256:b7a89799fe7ac875c0923329ea6cdcb61837027b5a44fa9f23a88101c05e833a AS builder
 
-USER root
+USER 0
 
-WORKDIR /build
+WORKDIR /workspace
 
-ARG GOARCH=amd64
-ARG GOOS=linux
+# Cache deps before copying source so that we do not need to re-download for every build
+COPY go.mod go.sum .
 
-COPY . .
+# Fetch dependencies hermetically by sourcing the local prefetch cache
+RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && \
+    go mod download
 
-RUN go mod download \
-    && go build -o sources-monitor-go . \
-    && strip sources-monitor-go
+# Now copy the rest of the files for build
+COPY *.go .
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+# Build the binary using the local cached modules
+RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && \
+    go build -ldflags "-w -s" -o sources-monitor-go .
 
-COPY --from=build /build/sources-monitor-go /sources-monitor-go
+############################
+# STEP 2 build a small image
+############################
+FROM registry.access.redhat.com/hi/go:latest-fips@sha256:b793b36bc6129d842d28f051681deb7907aae8b9b40e894fcd62e0fb2c1eaad5
+
+WORKDIR /
+
+COPY --from=builder /workspace/sources-monitor-go /sources-monitor-go
+
 COPY licenses/LICENSE /licenses/LICENSE
-
-RUN chmod +x /sources-monitor-go
 
 USER 1001
 
