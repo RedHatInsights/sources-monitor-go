@@ -15,7 +15,7 @@
 #   3. Review and merge the scaffold PR that install opens.
 version: 1
 github:
-  fullsend_ref: v0.48.1
+  fullsend_ref: v0.54.0
   repos:
     - name: RedHatInsights/sources-monitor-go
       inference:
