@@ -4,6 +4,7 @@
     "main"
   ],
   "minimumConfidence": "high",
+  "ignoreDeps": ["fullsend-ai/fullsend"],
   "packageRules": [
     {
       "minimumConfidence": "neutral",
