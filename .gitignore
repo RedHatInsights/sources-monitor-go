@@ -1,1 +1,4 @@
 /sources-monitor-go
+
+# fullsend lint/run cache
+/.fullsend/.fullsend-cache/
